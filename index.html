@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>Mesas J&L</title>
+  <style>
+    :root{
+      --seat-size: 56px;
+      --wrap-size: 100vw;
+      --table-size: 260px;
+    }
+    @media (min-width: 900px){
+      :root{ --wrap-size: 520px; --table-size: 280px; }
+    }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; color:#0f172a; background:#f8fafc; }
+    header { padding: 12px 14px; border-bottom:1px solid #e5e7eb; display:flex; gap:8px; align-items:center; background:#fff; position: sticky; top: 0; z-index: 20; }
+    header h1 { margin:0; font-size:18px; }
+    .btn { padding:10px 12px; border-radius:12px; border:1px solid #cbd5e1; background:#fff; cursor:pointer; font-size:14px; }
+    .btn.small { padding:4px 8px; font-size:12px; border-radius:999px; }
+    .btn.primary { background:#111827; color:#fff; border-color:#111827; }
+    .main { padding: 12px; }
+    .grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    @media (min-width: 900px){ .grid { grid-template-columns: repeat(auto-fill, minmax(560px, 1fr)); } }
+    .card { border: 1px solid #e5e7eb; border-radius: 14px; padding: 10px; box-shadow: 0 1px 2px rgba(0,0,0,.05); background:#fff; }
+    .header2 { display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px; }
+    .muted { color:#64748b; }
+    .small { font-size: 12px; color:#64748b; }
+    .table-wrap { position: relative; width: min(var(--wrap-size), 560px); height: min(var(--wrap-size), 560px); margin: 6px auto; }
+    .clear-btn { position:absolute; top: -6px; right: 8px; z-index: 5; }
+    .table { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width: var(--table-size); height: var(--table-size); border-radius:50%;
+             background: radial-gradient(ellipse at center, #f1f5f9 0%, #e2e8f0 100%); border: 3px solid #cbd5e1; display:flex; align-items:center; justify-content:center; font-weight:800; color:#334155; }
+    .table .monogram { font-size: 36px; letter-spacing: 2px; color:#475569; opacity:.8; }
+    .table .amp { margin: 0 6px; font-weight: 900; color:#9b87f5; }
+    .seat { width: var(--seat-size); height: var(--seat-size); border-radius: 50%; border: 2px solid #94a3b8; background:#f8fafc;
+            display:flex; align-items:center; justify-content:center; font-size:12px; text-align:center; padding:4px;
+            position:absolute; user-select:none; z-index: 2; transition: background .15s, border-color .15s; }
+    .seat.empty { border-style: dashed; color:#94a3b8; background:#f1f5f9; }
+    .role-foto   { background:#e0e7ff; border-color:#6366f1; color:#111; }
+    .role-cm     { background:#fecaca; border-color:#ef4444; color:#111; }
+    .role-sk     { background:#fef3c7; border-color:#f59e0b; color:#111; }
+    .role-pp     { background:#dcfce7; border-color:#22c55e; color:#111; }
+    .role-single { background:#ffe4e6; border-color:#fb7185; color:#111; }
+    .role-inv    { background:#f8fafc; border-color:#94a3b8; color:#111; }
+    .label { position:absolute; width: 260px; text-align:center; font-size: 12px; color:#111; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; z-index: 3; }
+    .selector { position:absolute; width: 90px; z-index: 3; font-size:11px; padding:1px 3px; }
+    .badge { position:absolute; font-size: 16px; line-height: 1; z-index: 4; pointer-events: none; }
+    .bottombar { position: fixed; bottom: 8px; left: 50%; transform: translateX(-50%); background:#ffffffcc; backdrop-filter: blur(6px); border:1px solid #e5e7eb; border-radius: 999px; padding:8px; display:flex; gap:8px; z-index: 30; }
+    .drawer { position: fixed; top:0; right: -100%; width: 92vw; max-width: 420px; height: 100vh; background:#fff; box-shadow: -4px 0 16px rgba(0,0,0,.08); z-index: 40; transition: right .2s; display:flex; flex-direction:column; }
+    .drawer.open { right: 0; }
+    .drawer header { display:flex; align-items:center; justify-content:space-between; gap:8px; padding: 12px; border-bottom:1px solid #e5e7eb; }
+    .drawer .body { padding: 12px; overflow:auto; }
+    .side-search { margin-bottom:8px; display:grid; grid-template-columns: 1fr auto auto; gap:8px; align-items:center; }
+    .guest-item { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:8px; margin-bottom:8px; box-shadow: 0 1px 1px rgba(0,0,0,.03); }
+    .guest-head { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+    .guest-name { font-weight:600; }
+    .guest-group { font-size:12px; color:#64748b; }
+    .guest-input { width:100%; font-size:14px; margin-top:6px; padding:8px; }
+    .highlight { outline: 3px solid #60a5fa; border-radius: 12px; }
+    .status { position: sticky; top:0; z-index:5; }
+    .counter { font-size: 12px; color:#475569; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <button id="openDrawer" class="btn">Invitados</button>
+    <h1>Mesas (Móvil)</h1>
+    <div style="flex:1"></div>
+    <button id="exportPDF" class="btn">PDF</button>
+    <button id="exportXLSX" class="btn">Excel</button>
+    <button id="exportCSV" class="btn">CSV</button>
+  </header>
+
+  <div class="main">
+    <div id="status" class="status"></div>
+    <div id="app" class="grid"></div>
+  </div>
+
+  <div class="bottombar">
+    <button id="save" class="btn primary">Guardar</button>
+    <button id="undo" class="btn">Deshacer</button>
+    <button id="import" class="btn">Importar</button>
+    <button id="exportJSON" class="btn">Exportar</button>
+  </div>
+  <input type="file" id="fileInput" accept=".json" style="display:none">
+
+  <div id="drawer" class="drawer">
+    <header>
+      <strong>Invitados</strong>
+      <button id="closeDrawer" class="btn">Cerrar</button>
+    </header>
+    <div class="body">
+      <div class="side-search">
+        <input type="text" id="searchGuest" placeholder="Buscar invitado o grupo...">
+        <button id="btnSearch" class="btn">Buscar</button>
+        <button id="clearSearch" class="btn">X</button>
+      </div>
+      <div class="counter" id="counter"></div>
+      <div class="small muted">Asignados se ocultan automáticamente. Edita nombres aquí. No se permiten nombres duplicados.</div>
+      <div id="guestList"></div>
+    </div>
+  </div>
+
+  <!-- libs -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+
+  <script>
+    const STORAGE_KEY = "plan_mesas_jl_v4";
+    // Roles abreviados + iconos
+    const ROLES = ["Foto","CM","SK","PP","Single","INV"];
+    const ROLE_FULL = { "Foto":"Fotógrafo", "CM":"Capitán de Mesa", "SK":"Shot King", "PP":"Party Popper", "Single":"Soltero", "INV":"Invitado" };
+    const ROLE_CLASS = { "Foto":"role-foto", "CM":"role-cm", "SK":"role-sk", "PP":"role-pp", "Single":"role-single", "INV":"role-inv" };
+    const ROLE_ICON = { "Foto":"📷", "CM":"🧢", "SK":"🥃", "PP":"🎉", "Single":"🔥", "INV":"" };
+
+    // Modelo base (20 mesas vacías con 10 asientos cada una)
+    const CAPACITY_PER_TABLE = 10;
+    const MESAS = Array.from({length: 20}, (_,i)=> i+1);
+    const modelo = new Map();
+    MESAS.forEach(m => modelo.set(m, Array.from({length: CAPACITY_PER_TABLE}, (_,i)=>({Seat:i+1, ID:null, ROL:"INV"}))));
+
+    // Lista de invitados vacía para comenzar (puedes importar JSON)
+    let PEOPLE = {}; // id -> {Nombre, GRUPO}
+    let autoId = 1;
+
+    const undoStack = [];
+    function snapshot(){
+      return {
+        people: JSON.parse(JSON.stringify(PEOPLE)),
+        seats: MESAS.reduce((acc,m)=>{ acc[m]=JSON.parse(JSON.stringify(modelo.get(m))); return acc; }, {})
+      };
+    }
+    function pushUndo(){ undoStack.push(snapshot()); if (undoStack.length>50) undoStack.shift(); }
+    function restore(snap){
+      PEOPLE = snap.people || {};
+      MESAS.forEach(m => modelo.set(m, JSON.parse(JSON.stringify((snap.seats||{})[m] || modelo.get(m)))));
+      render();
+    }
+
+    // Cargar de localStorage si existe
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved){ try{ restore(JSON.parse(saved)); }catch{} }
+
+    function saveLocal(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot())); statusMsg("Guardado en el dispositivo."); }
+    function autoSave(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot())); }
+
+    function statusMsg(msg, warn=false){
+      const el = document.getElementById('status'); if (!el) return;
+      el.innerHTML = `<div style="color:${warn?'#b45309':'#065f46'};background:${warn?'#fff7ed':'#ecfdf5'};padding:6px 8px;border-radius:8px;border:1px solid ${warn?'#fde68a':'#a7f3d0'}">${msg}</div>`;
+      setTimeout(()=>{el.innerHTML="";}, 2500);
+    }
+
+    function seatsUsed(m){ return modelo.get(m).filter(s=>s.ID!==null).length; }
+    function roleClass(rol){ return ROLE_CLASS[rol] || "role-inv"; }
+    function roleIcon(rol){ return ROLE_ICON[rol] || ""; }
+
+    function seatPos(i){
+      const wrap = Math.min(560, window.innerWidth - 32);
+      const cx = wrap/2, cy = wrap/2;
+      const R = Math.min(wrap/2 - 40, 220);
+      const angle = (Math.PI * 2) * (i / CAPACITY_PER_TABLE) - Math.PI/2;
+      const x = cx + R * Math.cos(angle);
+      const y = cy + R * Math.sin(angle);
+      const offset = 28;
+      return {left: x - offset, top: y - offset};
+    }
+
+    function isSeated(id){
+      for (const m of MESAS){
+        if (modelo.get(m).some(s=>s.ID===id)) return true;
+      }
+      return false;
+    }
+
+    function removeIDEverywhere(id){
+      MESAS.forEach(m => modelo.get(m).forEach(s=>{ if (s.ID===id){ s.ID=null; s.ROL="INV"; } }));
+    }
+
+    function nombreExiste(nuevo, exceptID=null){
+      const target = (nuevo||"").trim().toLowerCase();
+      if (!target) return false;
+      for (const [id, obj] of Object.entries(PEOPLE)){
+        if (exceptID && String(id)===String(exceptID)) continue;
+        if ((obj.Nombre||"").trim().toLowerCase() === target) return true;
+      }
+      return false;
+    }
+
+    // Seleccionar invitado y colocar
+    let selectedID = null;
+    function selectGuest(id){
+      selectedID = id;
+      statusMsg(`Seleccionado: ${PEOPLE[id].Nombre}`);
+      closeDrawer();
+    }
+    function placeOnSeat(mesa, seatIdx){
+      const s = modelo.get(mesa)[seatIdx];
+      if (!selectedID){ statusMsg("Primero selecciona un invitado en el panel.", true); return; }
+      pushUndo();
+      if (s.ID && s.ID !== selectedID){
+        let origin = null;
+        for (const m of MESAS){
+          const idx = modelo.get(m).findIndex(x=>x.ID===selectedID);
+          if (idx>=0){ origin = {m, idx}; break; }
+        }
+        if (origin){
+          const src = modelo.get(origin.m)[origin.idx];
+          const temp = s.ID; s.ID = selectedID; src.ID = temp;
+        } else {
+          removeIDEverywhere(selectedID);
+          s.ID = selectedID;
+        }
+      } else {
+        removeIDEverywhere(selectedID);
+        s.ID = selectedID;
+      }
+      autoSave();
+      render();
+    }
+
+    function setRol(mesa, seatIdx, newRol){
+      pushUndo();
+      modelo.get(mesa)[seatIdx].ROL = newRol;
+      autoSave();
+      render();
+    }
+
+    // Drawer
+    function openDrawer(){ document.getElementById('drawer').classList.add('open'); renderGuestList(); }
+    function closeDrawer(){ document.getElementById('drawer').classList.remove('open'); }
+    function filteredGuests(){
+      const q = document.getElementById('searchGuest').value.toLowerCase().trim();
+      const arr = Object.entries(PEOPLE).map(([id, obj])=>({id: Number(id), ...obj}));
+      const unseated = arr.filter(p => !isSeated(p.id));
+      const filtered = !q ? unseated :
+        unseated.filter(p => (p.Nombre||"").toLowerCase().includes(q) || (p.GRUPO||"").toLowerCase().includes(q));
+      return filtered.sort((a,b)=> (a.GRUPO||'').localeCompare(b.GRUPO||'') || (a.Nombre||'').localeCompare(b.Nombre||''));
+    }
+    function renderGuestList(){
+      const box = document.getElementById('guestList');
+      const counter = document.getElementById('counter');
+      const list = filteredGuests();
+      box.innerHTML = "";
+      counter.textContent = `Invitados sin asignar: ${list.length}`;
+      list.forEach(p => {
+        const item = document.createElement('div');
+        item.className = 'guest-item';
+        item.dataset.guestId = p.id;
+        const head = document.createElement('div');
+        head.className = 'guest-head';
+        const left = document.createElement('div');
+        left.innerHTML = `<div class="guest-name">${p.Nombre || "—"}</div><div class="guest-group">${p.GRUPO || ""}</div>`;
+        const right = document.createElement('div');
+        const selectBtn = document.createElement('button');
+        selectBtn.className = 'btn small'; selectBtn.textContent = 'Seleccionar';
+        selectBtn.onclick = ()=> selectGuest(p.id);
+        right.appendChild(selectBtn);
+        head.appendChild(left); head.appendChild(right);
+        item.appendChild(head);
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = p.Nombre || "";
+        input.placeholder = "Editar nombre (único)";
+        input.className = 'guest-input';
+        input.onchange = (e)=> {
+          const val = (e.target.value||"").trim();
+          const exists = Object.entries(PEOPLE).some(([oid, obj]) => Number(oid)!==p.id && (obj.Nombre||"").trim().toLowerCase()===val.toLowerCase());
+          if (exists){ statusMsg("Ese nombre ya existe. No duplicados.", true); e.target.value = PEOPLE[p.id].Nombre || ""; return; }
+          if (!val){ statusMsg("El nombre no puede estar vacío.", true); e.target.value = PEOPLE[p.id].Nombre || ""; return; }
+          pushUndo();
+          PEOPLE[p.id].Nombre = val;
+          autoSave();
+          renderGuestList();
+          render();
+        };
+        input.onkeydown = (e)=>{ if (e.key==="Enter"){ e.target.blur(); } };
+        box.appendChild(item);
+        item.appendChild(input);
+      });
+    }
+
+    // Agregar/Importar
+    function addGuest(name, group=""){
+      if (!name){ statusMsg("Escribe un nombre.", true); return; }
+      if (nombreExiste(name)){ statusMsg("Ese nombre ya existe.", true); return; }
+      PEOPLE[autoId++] = {Nombre:name, GRUPO:group};
+      autoSave();
+      renderGuestList();
+    }
+
+    function clearMesa(mesa){
+      pushUndo();
+      modelo.get(mesa).forEach(s=>{ s.ID=null; s.ROL="INV"; });
+      autoSave();
+      render();
+      statusMsg(`Mesa ${mesa} limpiada.`);
+    }
+
+    // Render
+    function roleSelectEl(mesa, seatIdx){
+      const sel = document.createElement('select');
+      const s = modelo.get(mesa)[seatIdx];
+      ROLES.forEach(r=>{
+        const o = document.createElement('option'); o.value = r; o.textContent = r;
+        if (s.ROL === r) o.selected = true;
+        sel.appendChild(o);
+      });
+      sel.onchange = e => setRol(mesa, seatIdx, e.target.value);
+      return sel;
+    }
+    function seatEl(mesa, seatIdx){
+      const s = modelo.get(mesa)[seatIdx];
+      const seat = document.createElement('div');
+      seat.className = 'seat ' + (s.ID ? roleClass(s.ROL) : 'empty');
+      const pos = seatPos(seatIdx);
+      seat.style.left = pos.left + "px";
+      seat.style.top = pos.top + "px";
+      seat.dataset.seat = `${mesa}-${seatIdx}`;
+      seat.onclick = ()=> placeOnSeat(mesa, seatIdx);
+      seat.innerHTML = s.ID ? (PEOPLE[s.ID].Nombre.split(" ").map(w=>w[0]).filter(Boolean).slice(0,2).join("").toUpperCase()) : "Vacío";
+      seat.title = s.ID ? (PEOPLE[s.ID].Nombre + "\n" + (PEOPLE[s.ID].GRUPO||"") + "\nRol: " + (ROLE_FULL[s.ROL]||s.ROL)) : "Vacío";
+      return seat;
+    }
+    function badgeEl(mesa, seatIdx){
+      const s = modelo.get(mesa)[seatIdx];
+      const icon = s.ID ? roleIcon(s.ROL) : "";
+      if (!icon) return null;
+      const pos = seatPos(seatIdx);
+      const b = document.createElement('div');
+      b.className = 'badge';
+      b.style.left = (pos.left + 22) + "px";
+      b.style.top = (pos.top - 16) + "px";
+      b.textContent = icon;
+      return b;
+    }
+    function labelEl(mesa, seatIdx){
+      const s = modelo.get(mesa)[seatIdx];
+      const pos = seatPos(seatIdx);
+      const div = document.createElement('div');
+      div.className = 'label';
+      div.style.left = (pos.left - 110) + "px";
+      div.style.top = (pos.top + 44) + "px";
+      const full = s.ID ? PEOPLE[s.ID].Nombre : "—";
+      div.textContent = full ? full.slice(0,20) : "—"; // 20 chars en mesa
+      div.title = full;
+      return div;
+    }
+    function roleSelectorEl(mesa, seatIdx){
+      const pos = seatPos(seatIdx);
+      const el = roleSelectEl(mesa, seatIdx);
+      el.className = 'selector';
+      el.style.left = (pos.left - 45) + "px";
+      el.style.top = (pos.top + 74) + "px";
+      return el;
+    }
+    function renderMesaCard(m){
+      const card = document.createElement('div');
+      card.className = 'card';
+      const header = document.createElement('div');
+      header.className = 'header2';
+      header.innerHTML = `<div><strong>Mesa ${m}</strong></div><div class="small muted">Asientos: ${seatsUsed(m)}/${CAPACITY_PER_TABLE}</div>`;
+      card.appendChild(header);
+
+      const wrap = document.createElement('div');
+      wrap.className = 'table-wrap';
+
+      const clear = document.createElement('button');
+      clear.className = 'btn small clear-btn';
+      clear.textContent = '✕';
+      clear.title = 'Limpiar asignación de esta mesa';
+      clear.onclick = ()=> clearMesa(m);
+      wrap.appendChild(clear);
+
+      const table = document.createElement('div');
+      table.className = 'table';
+      table.innerHTML = '<div class="monogram">J<span class="amp">&amp;</span>L</div>';
+      wrap.appendChild(table);
+
+      for (let i=0;i<CAPACITY_PER_TABLE;i++){
+        wrap.appendChild(seatEl(m, i));
+        const badge = badgeEl(m, i); if (badge) wrap.appendChild(badge);
+        wrap.appendChild(labelEl(m, i));
+        wrap.appendChild(roleSelectorEl(m, i));
+      }
+
+      card.appendChild(wrap);
+      return card;
+    }
+    function render(){
+      const app = document.getElementById('app');
+      app.innerHTML = "";
+      MESAS.forEach(m => app.appendChild(renderMesaCard(m)));
+      renderGuestList();
+    }
+
+    // Búsqueda difusa
+    function lev(a,b){
+      a = (a||'').toLowerCase(); b = (b||'').toLowerCase();
+      const m = a.length, n = b.length;
+      const dp = Array.from({length:m+1}, ()=>Array(n+1).fill(0));
+      for (let i=0;i<=m;i++) dp[i][0]=i;
+      for (let j=0;j<=n;j++) dp[0][j]=j;
+      for (let i=1;i<=m;i++){
+        for (let j=1;j<=n;j++){
+          const cost = a[i-1]===b[j-1] ? 0 : 1;
+          dp[i][j] = Math.min(dp[i-1][j]+1, dp[i][j-1]+1, dp[i-1][j-1]+cost);
+        }
+      }
+      return dp[m][n];
+    }
+    function bestMatch(q){
+      q = (q||"").trim(); if (!q) return null;
+      let best = null, bestScore = Infinity;
+      for (const [id, obj] of Object.entries(PEOPLE)){
+        const nid = Number(id);
+        if (isSeated(nid)) continue;
+        const name = obj.Nombre || "";
+        const parts = name.split(" ");
+        const score = Math.min( lev(q, name), lev(q, parts[0]||""), lev(q, parts.slice(-1)[0]||"") );
+        if (score < bestScore){ best = {id:nid, name}; bestScore = score; }
+      }
+      return best;
+    }
+    function onBuscar(){
+      const q = document.getElementById('searchGuest').value;
+      const best = bestMatch(q);
+      if (!best){ statusMsg("No se encontraron coincidencias (o ya están asignados).", true); return; }
+      const card = document.querySelector(`[data-guest-id="${best.id}"]`);
+      if (card){ card.classList.add('highlight'); card.scrollIntoView({behavior:"smooth", block:"center"}); setTimeout(()=>card.classList.remove('highlight'),1500); }
+    }
+
+    // Export
+    function recolectarDatos(){
+      const rows = [];
+      MESAS.forEach(m => {
+        const seats = modelo.get(m);
+        seats.forEach(s=>{
+          const person = s.ID ? PEOPLE[s.ID] : {Nombre:"", GRUPO:""};
+          rows.push({Mesa: m, Asiento: s.Seat, ID: s.ID||"", Nombre: person.Nombre, GRUPO: person.GRUPO, ROL: s.ROL});
+        });
+      });
+      return rows;
+    }
+    function exportCSV(){
+      const rows = recolectarDatos();
+      const headers = ["Mesa","Asiento","ID","Nombre","GRUPO","ROL"];
+      const esc = (t)=>`"${String(t||'').replaceAll('"','""')}"`;
+      const csv = [headers.join(",")].concat(rows.map(r=>[r.Mesa, r.Asiento, r.ID, esc(r.Nombre), esc(r.GRUPO), r.ROL].join(","))).join("\n");
+      const blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = "Asignacion_Mesas.csv"; a.click();
+      URL.revokeObjectURL(url);
+    }
+    function exportXLSX(){
+      try{
+        const rows = recolectarDatos();
+        const ws = XLSX.utils.json_to_sheet(rows);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Asignacion");
+        const resumen = MESAS.map(m=>({Mesa:m, Asientos: seatsUsed(m)}));
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(resumen), "Resumen_Mesas");
+        XLSX.writeFile(wb, "Asignacion_Mesas.xlsx");
+      } catch(e){
+        statusMsg("No se pudo generar .xlsx. Usa CSV.", true);
+      }
+    }
+    async function exportPDF(){
+      const { jsPDF } = window.jspdf || {};
+      if (!jsPDF || !window.html2canvas){
+        statusMsg("No se pudo cargar el generador de PDF.", true);
+        return;
+      }
+      // Ocultar selects temporalmente + ignorarlos
+      const hideStyle = document.createElement('style');
+      hideStyle.textContent = `.selector{display:none !important}`;
+      document.head.appendChild(hideStyle);
+
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+      const cards = Array.from(document.querySelectorAll('.card'));
+      if (cards.length === 0){
+        statusMsg("No hay mesas para exportar.", true);
+        hideStyle.remove();
+        return;
+      }
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+
+      let first = true;
+      for (const card of cards){
+        const prevBoxShadow = card.style.boxShadow;
+        card.style.boxShadow = 'none';
+        const canvas = await html2canvas(card, { scale: 2, useCORS: true, ignoreElements: el => el.classList && el.classList.contains('selector') });
+        card.style.boxShadow = prevBoxShadow;
+
+        const imgData = canvas.toDataURL('image/png');
+        const imgW = pageW - 40;
+        const ratio = imgW / canvas.width;
+        const imgH = canvas.height * ratio;
+        if (!first) pdf.addPage('a4', 'landscape');
+        first = false;
+        pdf.addImage(imgData, 'PNG', 20, 20, imgW, Math.min(imgH, pageH - 40));
+      }
+      hideStyle.remove();
+      pdf.save('Asignacion_Mesas.pdf');
+    }
+
+    // Bindings
+    document.getElementById('openDrawer').onclick = ()=>{ openDrawer(); };
+    document.getElementById('closeDrawer').onclick = ()=>{ closeDrawer(); };
+    document.getElementById('btnSearch').onclick = onBuscar;
+    document.getElementById('clearSearch').onclick = ()=>{ document.getElementById('searchGuest').value=""; renderGuestList(); };
+    document.getElementById('save').onclick = saveLocal;
+    document.getElementById('undo').onclick = ()=>{ const s=undoStack.pop(); if(s){ restore(s); statusMsg("Deshecho."); } };
+    document.getElementById('exportJSON').onclick = ()=>{
+      const data = snapshot();
+      const blob = new Blob([JSON.stringify(data,null,2)], {type:"application/json"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = "Plan_Mesas.json"; a.click();
+      URL.revokeObjectURL(url);
+    };
+    document.getElementById('import').onclick = ()=> document.getElementById('fileInput').click();
+    document.getElementById('fileInput').addEventListener('change', (e)=>{
+      const f=e.target.files[0]; if(!f) return;
+      const reader = new FileReader();
+      reader.onload = (ev)=>{
+        try{
+          const data = JSON.parse(ev.target.result);
+          restore(data);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+          statusMsg("Importado y guardado.");
+        }catch{
+          statusMsg("Archivo inválido.", true);
+        }
+      };
+      reader.readAsText(f);
+    });
+    document.getElementById('exportCSV').onclick = exportCSV;
+    document.getElementById('exportXLSX').onclick = exportXLSX;
+    document.getElementById('exportPDF').onclick = exportPDF;
+
+    // Render inicial
+    render();
+  </script>
+</body>
+</html>
